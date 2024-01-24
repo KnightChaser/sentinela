@@ -1,5 +1,7 @@
 package sysmonEventStruct
 
+import "time"
+
 // Sysmon event struct (from golang-evtx)
 
 // {
@@ -39,8 +41,8 @@ package sysmonEventStruct
 // --------------------------------------------------------------------------------
 
 type Execution struct {
-	ProcessID string `json:"ProcessID"`
-	ThreadID  string `json:"ThreadID"`
+	ProcessID uint32 `json:"ProcessID"`
+	ThreadID  uint32 `json:"ThreadID"`
 }
 
 type Provider struct {
@@ -53,7 +55,7 @@ type Security struct {
 }
 
 type TimeCreated struct {
-	SystemTime string `json:"SystemTime"`
+	SystemTime time.Time `json:"SystemTime"`
 }
 
 // System struct is commonly shared by all events
@@ -61,21 +63,20 @@ type System struct {
 	Channel       string      `json:"Channel"`
 	Computer      string      `json:"Computer"`
 	Correlation   interface{} `json:"Correlation"`
-	EventID       string      `json:"EventID"`
-	EventRecordID string      `json:"EventRecordID"`
+	EventID       uint32      `json:"EventID"`
+	EventRecordID uint32      `json:"EventRecordID"`
 	Execution     Execution   `json:"Execution"`
 	Keywords      string      `json:"Keywords"`
-	Level         string      `json:"Level"`
-	Opcode        string      `json:"Opcode"`
+	Level         uint32      `json:"Level"`
+	Opcode        uint32      `json:"Opcode"`
 	Provider      Provider    `json:"Provider"`
 	Security      Security    `json:"Security"`
-	Task          string      `json:"Task"`
+	Task          uint32      `json:"Task"`
 	TimeCreated   TimeCreated `json:"TimeCreated"`
-	Version       string      `json:"Version"`
+	Version       uint32      `json:"Version"`
 }
 
-// ------------------------------ EventData struct (different according to event ID) ------------------------------
-
+// ------------------------------- Sysmon Event Struct (By event ID, for reference) -------------------------------
 // ID 1. Process Create
 type EventDataID1 struct {
 	CommandLine       string `json:"CommandLine"`
@@ -456,11 +457,11 @@ type EventDataID28 struct {
 // ----------------------------------------------------------------------------------------------------------------
 
 type EventInternal struct {
-	Eventdata interface{} `json:"EventData"`
+	EventData interface{} `json:"EventData"` // save event data dynamically according to the ID of Sysmon event
 	System    System      `json:"System"`
 }
 
-// The struct contains an event created by Sysmon
+// Event represents the Sysmon event.
 type Event struct {
 	Event EventInternal `json:"Event"`
 }

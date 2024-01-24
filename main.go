@@ -5,21 +5,21 @@ import (
 	"fmt"
 	"log"
 	"os"
-	sysmonEventStruct "sentinela/module"
+	"strconv"
 
 	"github.com/0xrawsec/golang-evtx/evtx"
+	"github.com/valyala/fastjson"
 )
 
 // EventStats represents the statistics for a particular event.
-type EventStats struct {
-	Channel   string            // Event channel
-	EventID   int64             // Event ID
-	Count     int               // Number of occurrences
-	EvtxJsons []json.RawMessage // Parsed JSON representation of the events
+type SysmonEventStats struct {
+	Channel          string           // Event channel
+	EventID          int64            // Event ID
+	Count            int              // Number of occurrences
+	sysmonEvtxStruct []fastjson.Value // Parsed representation of the events
 }
 
-// evtx2json parses an EVTX file and returns statistics for events with specified IDs.
-func evtx2json(evtxFile string, targetIDs []int64) ([]EventStats, error) {
+func parseSysmonEVTX(evtxFile string) ([]SysmonEventStats, error) {
 	file, err := os.Open(evtxFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %v", evtxFile, err)
@@ -31,34 +31,37 @@ func evtx2json(evtxFile string, targetIDs []int64) ([]EventStats, error) {
 		return nil, fmt.Errorf("failed to create EVTX parser: %v", err)
 	}
 
-	stats := []EventStats{}
+	sysmonEventStats := []SysmonEventStats{}
 
 	for e := range ef.FastEvents() {
-		// If targetID is not given or the current event's ID is not included in targetIDs []int64, ignore the current iteration
-		if len(targetIDs) != 0 && !containsTargetEventID(e.EventID(), targetIDs) {
-			continue
-		}
 
-		contains, num := containsEvent(stats, e.EventID())
+		contains, num := containsEvent(sysmonEventStats, e.EventID())
+
+		// Jsonify parsed Sysmon EVTX log and save it to struct
 		evtxJSON, err := json.Marshal(e)
 		if err != nil {
+			// Set an empty JSON array if marshaling fails
 			log.Printf("Error marshaling JSON: %v", err)
-			evtxJSON = []byte{} // Set an empty JSON array if marshaling fails
 		}
+
+		// dynamically parse JSON
+		var fastjsonParser fastjson.Parser
+		p, err := fastjsonParser.Parse(string(evtxJSON))
+		parsedEvtxJSON := *p
 
 		if !contains {
 			// Check if the current event ID is already included to the struct object "stats".
 			// if not, create a registry for the new event.
-			newStats := EventStats{e.Channel(), e.EventID(), 1, []json.RawMessage{evtxJSON}}
-			stats = append(stats, newStats)
+			newSysmonEventStats := SysmonEventStats{e.Channel(), e.EventID(), 1, []fastjson.Value{parsedEvtxJSON}}
+			sysmonEventStats = append(sysmonEventStats, newSysmonEventStats)
 		} else {
 			// Event ID already exists, increase the event by 1 and append the currently found event
-			stats[num].Count++
-			stats[num].EvtxJsons = append(stats[num].EvtxJsons, evtxJSON)
+			sysmonEventStats[num].Count++
+			sysmonEventStats[num].sysmonEvtxStruct = append(sysmonEventStats[num].sysmonEvtxStruct, parsedEvtxJSON)
 		}
 	}
 
-	return stats, nil
+	return sysmonEventStats, nil
 }
 
 // containsTargetEventID checks if the event ID is in the target IDs slice.
@@ -73,7 +76,7 @@ func containsTargetEventID(eventID int64, targetIDs []int64) bool {
 
 // containsEvent checks if the event with the given ID is already present in the stats slice.
 // If present, it returns true and the index; otherwise, it returns false and -1.
-func containsEvent(stats []EventStats, eventID int64) (bool, int) {
+func containsEvent(stats []SysmonEventStats, eventID int64) (bool, int) {
 	for i, stat := range stats {
 		if stat.EventID == eventID {
 			return true, i
@@ -88,9 +91,7 @@ func main() {
 	evtxFileName := "Microsoft-Windows-Sysmon%4Operational.evtx"
 	sysmonEvtxFile := fmt.Sprintf("%s%s", defaultWindowsLogDirectory, evtxFileName)
 
-	targetIDs := []int64{5} // Replace with your target event IDs
-
-	stats, err := evtx2json(sysmonEvtxFile, targetIDs)
+	stats, err := parseSysmonEVTX(sysmonEvtxFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -98,15 +99,9 @@ func main() {
 	// Display the statistics
 	for _, stat := range stats {
 		fmt.Printf("Channel: %s, Event ID: %d, Count: %d\n", stat.Channel, stat.EventID, stat.Count)
-		for _, evtxJSON := range stat.EvtxJsons {
-			var data sysmonEventStruct.EventID5
-			json.Unmarshal([]byte(evtxJSON), &data)
-
-			// Access some data
-			fmt.Printf("Rulename: %v\n", data.Event.System.EventID)
-			fmt.Printf("Image: %v\n", data.Event.EventData.Image)
-			fmt.Printf("UtcTime: %v\n", data.Event.EventData.UtcTime)
-			fmt.Println("===================================================================")
+		for _, sysmonEventStruct := range stat.sysmonEvtxStruct {
+			eventID, _ := strconv.Atoi(string(sysmonEventStruct.GetStringBytes("Event", "System", "EventID")))
+			fmt.Println(eventID)
 		}
 	}
 }
