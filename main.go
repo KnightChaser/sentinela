@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	sysmonEventStruct "sentinela/module"
 
 	"github.com/0xrawsec/golang-evtx/evtx"
 )
@@ -83,64 +84,8 @@ func containsEvent(stats []EventStats, eventID int64) (bool, int) {
 	return false, -1
 }
 
-// ----------------------------- event ID 5 -----------------------------------
-type EventData struct {
-	Image       string `json:"Image"`
-	ProcessGuid string `json:"ProcessGuid"`
-	ProcessId   string `json:"ProcessId"`
-	RuleName    string `json:"RuleName"`
-	User        string `json:"User"`
-	UtcTime     string `json:"UtcTime"`
-}
-
-type Execution struct {
-	ProcessID string `json:"ProcessID"`
-	ThreadID  string `json:"ThreadID"`
-}
-
-type Provider struct {
-	Guid string `json:"Guid"`
-	Name string `json:"Name"`
-}
-
-type Security struct {
-	UserID string `json:"UserID"`
-}
-
-type TimeCreated struct {
-	SystemTime string `json:"SystemTime"`
-}
-
-type System struct {
-	Channel       string      `json:"Channel"`
-	Computer      string      `json:"Computer"`
-	Correlation   interface{} `json:"Correlation"`
-	EventID       string      `json:"EventID"`
-	EventRecordID string      `json:"EventRecordID"`
-	Execution     Execution   `json:"Execution"`
-	Keywords      string      `json:"Keywords"`
-	Level         string      `json:"Level"`
-	Opcode        string      `json:"Opcode"`
-	Provider      Provider    `json:"Provider"`
-	Security      Security    `json:"Security"`
-	Task          string      `json:"Task"`
-	TimeCreated   TimeCreated `json:"TimeCreated"`
-	Version       string      `json:"Version"`
-}
-
-type EventID5Internal struct {
-	EventData EventData `json:"EventData"`
-	System    System    `json:"System"`
-}
-
-type EventID5 struct {
-	Event EventID5Internal `json:"Event"`
-}
-
-// ----------------------------------------------------------------------------
-
 func main() {
-	targetIDs := []int64{5} // Replace with your target event IDs
+	targetIDs := []int64{3} // Replace with your target event IDs
 
 	stats, err := evtx2json(sysmonEvtxFile, targetIDs)
 	if err != nil {
@@ -152,7 +97,7 @@ func main() {
 		fmt.Printf("Channel: %s, Event ID: %d, Count: %d\n", stat.Channel, stat.EventID, stat.Count)
 		for _, evtxJSON := range stat.EvtxJsons {
 			fmt.Println(string(evtxJSON))
-			var data EventID5
+			var data sysmonEventStruct.EventID5
 			json.Unmarshal([]byte(evtxJSON), &data)
 			fmt.Println("===================================================================")
 			fmt.Printf("%v\n", data.Event.EventData.Image)
