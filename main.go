@@ -18,8 +18,6 @@ type EventStats struct {
 	EvtxJsons []json.RawMessage // Parsed JSON representation of the events
 }
 
-const sysmonEvtxFile = "C:/Windows/System32/winevt/Logs/Microsoft-Windows-Sysmon%4Operational.evtx"
-
 // evtx2json parses an EVTX file and returns statistics for events with specified IDs.
 func evtx2json(evtxFile string, targetIDs []int64) ([]EventStats, error) {
 	file, err := os.Open(evtxFile)
@@ -85,7 +83,12 @@ func containsEvent(stats []EventStats, eventID int64) (bool, int) {
 }
 
 func main() {
-	targetIDs := []int64{3} // Replace with your target event IDs
+
+	defaultWindowsLogDirectory := "C:/Windows/System32/winevt/Logs/"
+	evtxFileName := "Microsoft-Windows-Sysmon%4Operational.evtx"
+	sysmonEvtxFile := fmt.Sprintf("%s%s", defaultWindowsLogDirectory, evtxFileName)
+
+	targetIDs := []int64{5} // Replace with your target event IDs
 
 	stats, err := evtx2json(sysmonEvtxFile, targetIDs)
 	if err != nil {
@@ -96,11 +99,13 @@ func main() {
 	for _, stat := range stats {
 		fmt.Printf("Channel: %s, Event ID: %d, Count: %d\n", stat.Channel, stat.EventID, stat.Count)
 		for _, evtxJSON := range stat.EvtxJsons {
-			fmt.Println(string(evtxJSON))
 			var data sysmonEventStruct.EventID5
 			json.Unmarshal([]byte(evtxJSON), &data)
-			fmt.Println("===================================================================")
-			fmt.Printf("%v\n", data.Event.EventData.Image)
+
+			// Access some data
+			fmt.Printf("Rulename: %v\n", data.Event.System.EventID)
+			fmt.Printf("Image: %v\n", data.Event.EventData.Image)
+			fmt.Printf("UtcTime: %v\n", data.Event.EventData.UtcTime)
 			fmt.Println("===================================================================")
 		}
 	}
