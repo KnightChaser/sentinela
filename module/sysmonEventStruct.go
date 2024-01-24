@@ -457,8 +457,8 @@ type EventDataID28 struct {
 // ----------------------------------------------------------------------------------------------------------------
 
 type EventInternal struct {
-	EventData interface{} `json:"EventData"` // save event data dynamically according to the ID of Sysmon event
-	System    System      `json:"System"`
+	EventData map[string]string `json:"EventData"` // save event data dynamically according to the ID of Sysmon event
+	System    System            `json:"System"`
 }
 
 // Event represents the Sysmon event.

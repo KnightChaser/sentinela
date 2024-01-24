@@ -5,21 +5,20 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/0xrawsec/golang-evtx/evtx"
-	"github.com/valyala/fastjson"
+	"github.com/tidwall/gjson"
 )
 
 // EventStats represents the statistics for a particular event.
 type SysmonEventStats struct {
-	Channel          string           // Event channel
-	EventID          int64            // Event ID
-	Count            int              // Number of occurrences
-	sysmonEvtxStruct []fastjson.Value // Parsed representation of the events
+	Channel          string   // Event channel
+	EventID          int64    // Event ID
+	Count            int      // Number of occurrences
+	sysmonEvtxStruct []string // Parsed representation of the events
 }
 
-func parseSysmonEVTX(evtxFile string) ([]SysmonEventStats, error) {
+func parseSysmonEVTX(evtxFile string, targetIDs []int64) ([]SysmonEventStats, error) {
 	file, err := os.Open(evtxFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open file %s: %v", evtxFile, err)
@@ -35,6 +34,11 @@ func parseSysmonEVTX(evtxFile string) ([]SysmonEventStats, error) {
 
 	for e := range ef.FastEvents() {
 
+		// If targetID is not given or the current event's ID is not included in targetIDs []int64, ignore the current iteration
+		if len(targetIDs) != 0 && !containsTargetEventID(e.EventID(), targetIDs) {
+			continue
+		}
+
 		contains, num := containsEvent(sysmonEventStats, e.EventID())
 
 		// Jsonify parsed Sysmon EVTX log and save it to struct
@@ -45,19 +49,16 @@ func parseSysmonEVTX(evtxFile string) ([]SysmonEventStats, error) {
 		}
 
 		// dynamically parse JSON
-		var fastjsonParser fastjson.Parser
-		p, err := fastjsonParser.Parse(string(evtxJSON))
-		parsedEvtxJSON := *p
 
 		if !contains {
 			// Check if the current event ID is already included to the struct object "stats".
 			// if not, create a registry for the new event.
-			newSysmonEventStats := SysmonEventStats{e.Channel(), e.EventID(), 1, []fastjson.Value{parsedEvtxJSON}}
+			newSysmonEventStats := SysmonEventStats{e.Channel(), e.EventID(), 1, []string{string(evtxJSON)}}
 			sysmonEventStats = append(sysmonEventStats, newSysmonEventStats)
 		} else {
 			// Event ID already exists, increase the event by 1 and append the currently found event
 			sysmonEventStats[num].Count++
-			sysmonEventStats[num].sysmonEvtxStruct = append(sysmonEventStats[num].sysmonEvtxStruct, parsedEvtxJSON)
+			sysmonEventStats[num].sysmonEvtxStruct = append(sysmonEventStats[num].sysmonEvtxStruct, string(evtxJSON))
 		}
 	}
 
@@ -90,8 +91,10 @@ func main() {
 	defaultWindowsLogDirectory := "C:/Windows/System32/winevt/Logs/"
 	evtxFileName := "Microsoft-Windows-Sysmon%4Operational.evtx"
 	sysmonEvtxFile := fmt.Sprintf("%s%s", defaultWindowsLogDirectory, evtxFileName)
+	// targetIDs := []int64{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28}
+	targetIDs := []int64{26}
 
-	stats, err := parseSysmonEVTX(sysmonEvtxFile)
+	stats, err := parseSysmonEVTX(sysmonEvtxFile, targetIDs)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -100,8 +103,8 @@ func main() {
 	for _, stat := range stats {
 		fmt.Printf("Channel: %s, Event ID: %d, Count: %d\n", stat.Channel, stat.EventID, stat.Count)
 		for _, sysmonEventStruct := range stat.sysmonEvtxStruct {
-			eventID, _ := strconv.Atoi(string(sysmonEventStruct.GetStringBytes("Event", "System", "EventID")))
-			fmt.Println(eventID)
+			fmt.Println(gjson.Get(sysmonEventStruct, "Event.EventData.ProcessId"))
+			fmt.Println("=========================================================================")
 		}
 	}
 }
