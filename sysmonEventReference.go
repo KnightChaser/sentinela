@@ -1,4 +1,4 @@
-package sysmonEventStruct
+package sentinela
 
 import "time"
 
@@ -38,7 +38,7 @@ import "time"
 // 	}
 //   }
 
-// --------------------------------------------------------------------------------
+// ------------------------------- Sysmon System Struct (Common for all event ID) ----------------------------------------
 
 type Execution struct {
 	ProcessID uint32 `json:"ProcessID"`
