@@ -1,7 +1,5 @@
 package sentinela
 
-import "time"
-
 // Sysmon event struct (from golang-evtx)
 
 // {
@@ -36,7 +34,7 @@ import "time"
 // 		"Version": "5"
 // 	  }
 // 	}
-//   }
+// }
 
 // ------------------------------- Sysmon System Struct (Common for all event ID) ----------------------------------------
 
@@ -55,7 +53,7 @@ type Security struct {
 }
 
 type TimeCreated struct {
-	SystemTime time.Time `json:"SystemTime"`
+	SystemTime string `json:"SystemTime"`
 }
 
 // System struct is commonly shared by all events

@@ -9,7 +9,7 @@ import (
 	"github.com/0xrawsec/golang-evtx/evtx"
 )
 
-// EventStats represents the statistics for a particular event.
+// SysmonEventStats represents the statistics for a particular event.
 type SysmonEventStats struct {
 	Event []string // Parsed representation of the events
 }
