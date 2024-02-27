@@ -31,7 +31,7 @@ import (
 )
 
 func main() {
-    // Sysmon(System Monitor) log file in Windows
+  // Sysmon(System Monitor) log file in Windows
 	defaultWindowsLogDirectory := "C:/Windows/System32/winevt/Logs/"
 	evtxFileName := "Microsoft-Windows-Sysmon%4Operational.evtx"
 	sysmonEvtxFile := fmt.Sprintf("%s%s", defaultWindowsLogDirectory, evtxFileName)
@@ -102,6 +102,21 @@ Because `sentinela` is a wrapper module of `0xrawsec`'s `golang-evtx` for simpli
     }
   }
 }
+```
+
+Or you can just export EVTX file to JSON file directly.
+```go
+package main
+
+import (
+	"github.com/KnightChaser/sentinela"
+)
+
+func main() {
+	sentinela.ParseEVTXtoJSON("C:\\Users\\3NR1QUE\\Downloads\\example_000.evtx",
+		"C:\\Users\\3NR1QUE\\Downloads\\example_000_sentinela_converted.json")
+}
+
 ```
 
 ## (TIP) Install Sysmon
